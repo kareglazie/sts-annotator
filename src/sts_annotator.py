@@ -25,7 +25,7 @@ from PyQt5.QtGui import QFont, QColor, QKeySequence
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[logging.FileHandler("sts_annotator.log"), logging.StreamHandler()],
+    handlers=[logging.StreamHandler()],
 )
 
 
@@ -93,11 +93,11 @@ class STSAnnotator(QMainWindow):
 
         control_layout = QHBoxLayout()
         self.load_btn = QPushButton("📁 Загрузить csv")
-        self.save_btn = QPushButton("💾 Сохранить")
         self.save_as_btn = QPushButton("📝 Сохранить как")
+        self.save_btn = QPushButton("💾 Сохранить")
         control_layout.addWidget(self.load_btn)
-        control_layout.addWidget(self.save_btn)
         control_layout.addWidget(self.save_as_btn)
+        control_layout.addWidget(self.save_btn)
         control_layout.addStretch()
         main_layout.addLayout(control_layout)
 
@@ -125,9 +125,15 @@ class STSAnnotator(QMainWindow):
 
         nav_layout.addSpacing(20)
 
-        self.btn_prev = QPushButton("<< Назад")
-        self.btn_next = QPushButton("Вперед >>")
-        self.btn_next_unlabeled = QPushButton("След. неразмеченный >>")
+        self.btn_prev = QPushButton("<< Предыдущий")
+        self.btn_next = QPushButton("Следующий >>")
+        self.btn_next_unlabeled = QPushButton("⏭ Следующий неразмеченный")
+
+        nav_btn_style = "padding: 6px 12px; min-height: 30px;"
+        self.btn_prev.setStyleSheet(nav_btn_style)
+        self.btn_next.setStyleSheet(nav_btn_style)
+        self.btn_next_unlabeled.setStyleSheet(nav_btn_style)
+
         nav_layout.addWidget(self.btn_prev)
         nav_layout.addWidget(self.btn_next)
         nav_layout.addWidget(self.btn_next_unlabeled)
@@ -138,12 +144,26 @@ class STSAnnotator(QMainWindow):
         self.jump_input = QSpinBox()
         self.jump_input.setMinimum(1)
         self.jump_input.setMaximum(1)
+        self.jump_input.setMaximumWidth(120)
         self.jump_btn = QPushButton("Перейти")
         nav_layout.addWidget(self.jump_input)
         nav_layout.addWidget(self.jump_btn)
 
         nav_layout.addStretch()
         main_layout.addLayout(nav_layout)
+
+        current_layout = QHBoxLayout()
+        current_label_title = QLabel("Текущая разметка:")
+        current_label_title.setStyleSheet("font-size: 20px; font-weight: bold;")
+        current_layout.addWidget(current_label_title)
+
+        self.current_label = QLabel("Не размечено")
+        self.current_label.setStyleSheet(
+            "font-family: 'Segoe UI', Arial; font-size: 26px; font-weight: bold; color: gray;"
+        )
+        current_layout.addWidget(self.current_label)
+        current_layout.addStretch()
+        main_layout.addLayout(current_layout)
 
         query_layout = QVBoxLayout()
         query_layout.addWidget(QLabel("Query:"))
@@ -161,50 +181,41 @@ class STSAnnotator(QMainWindow):
         text_layout.addWidget(self.text_display)
         main_layout.addLayout(text_layout, stretch=1)
 
-        annotation_group = QGroupBox("Разметка")
-        annotation_layout = QVBoxLayout(annotation_group)
+        annotation_layout = QHBoxLayout()
 
-        similarity_layout = QHBoxLayout()
         self.btn_similar = QPushButton("Похожи")
         self.btn_not_similar = QPushButton("Не похожи")
-
-        self.btn_similar.setStyleSheet(
-            "background-color: #2ecc71; color: white; font-weight: bold; padding: 10px;"
-        )
-        self.btn_not_similar.setStyleSheet(
-            "background-color: #e74c3c; color: white; font-weight: bold; padding: 10px;"
-        )
-
-        self.btn_similar.setFont(QFont("Arial", 14, QFont.Bold))
-        self.btn_not_similar.setFont(QFont("Arial", 14, QFont.Bold))
-
-        similarity_layout.addWidget(self.btn_similar)
-        similarity_layout.addWidget(self.btn_not_similar)
-        annotation_layout.addLayout(similarity_layout)
-
-        current_layout = QHBoxLayout()
-        current_layout.addWidget(QLabel("Текущая разметка:"))
-        self.current_label = QLabel("Не размечено")
-        self.current_label.setStyleSheet("font-weight: bold; font-size: 22px;")
-        current_layout.addWidget(self.current_label)
-        current_layout.addStretch()
-        annotation_layout.addLayout(current_layout)
-
-        action_layout = QHBoxLayout()
         self.btn_skip = QPushButton("⏭ Пропустить")
         self.delete_btn = QPushButton("🗑 Удалить строку")
 
-        self.btn_skip.setStyleSheet(
-            "background-color: #95a5a6; color: white; font-weight: bold; padding: 8px;"
+        common_btn_style = (
+            "padding: 10px 16px;"
+            "min-height: 30px;"
+            "font-weight: bold;"
         )
-        self.btn_skip.setFont(QFont("Arial", 13))
+        self.btn_similar.setStyleSheet(
+            "background-color: #2ecc71; color: white; " + common_btn_style
+        )
+        self.btn_not_similar.setStyleSheet(
+            "background-color: #e74c3c; color: white; " + common_btn_style
+        )
+        self.btn_skip.setStyleSheet(
+            "background-color: #95a5a6; color: white; " + common_btn_style
+        )
+        self.delete_btn.setStyleSheet(common_btn_style)
 
-        action_layout.addWidget(self.btn_skip)
-        action_layout.addWidget(self.delete_btn)
-        action_layout.addStretch()
-        annotation_layout.addLayout(action_layout)
+        btn_font = QFont("Arial", 14, QFont.Bold)
+        self.btn_similar.setFont(btn_font)
+        self.btn_not_similar.setFont(btn_font)
+        self.btn_skip.setFont(btn_font)
+        self.delete_btn.setFont(btn_font)
 
-        main_layout.addWidget(annotation_group)
+        annotation_layout.addWidget(self.btn_similar)
+        annotation_layout.addWidget(self.btn_not_similar)
+        annotation_layout.addWidget(self.btn_skip)
+        annotation_layout.addWidget(self.delete_btn)
+
+        main_layout.addLayout(annotation_layout)
 
         self.connect_signals()
 
@@ -354,7 +365,9 @@ class STSAnnotator(QMainWindow):
             self.text_display.clear()
             self.position_label.setText("Запись 0 из 0")
             self.current_label.setText("Не размечено")
-            self.current_label.setStyleSheet("color: gray; font-weight: bold; font-size: 22px;")
+            self.current_label.setStyleSheet(
+                "font-family: 'Segoe UI', Arial; font-size: 26px; font-weight: bold; color: gray;"
+            )
 
             self.stats_total.setText("Всего: 0")
             self.stats_labeled.setText("Размечено: 0")
@@ -382,7 +395,7 @@ class STSAnnotator(QMainWindow):
             if similar == -1:
                 self.current_label.setText("Не размечено")
                 self.current_label.setStyleSheet(
-                    "color: gray; font-weight: bold; font-size: 22px;"
+                    "font-family: 'Segoe UI', Arial; font-size: 26px; font-weight: bold; color: gray;"
                 )
             else:
                 similar_text = "Похожи" if similar == 1 else "Не похожи"
@@ -390,11 +403,11 @@ class STSAnnotator(QMainWindow):
 
                 if similar == 1:
                     self.current_label.setStyleSheet(
-                        "color: green; font-weight: bold; font-size: 22px;"
+                        "font-family: 'Segoe UI', Arial; font-size: 26px; font-weight: bold; color: green;"
                     )
                 else:
                     self.current_label.setStyleSheet(
-                        "color: red; font-weight: bold; font-size: 22px;"
+                        "font-family: 'Segoe UI', Arial; font-size: 26px; font-weight: bold; color: red;"
                     )
         except Exception as e:
             logging.error(f"Ошибка при отображении текущей записи: {e}", exc_info=True)
@@ -549,7 +562,6 @@ class STSAnnotator(QMainWindow):
             logging.error(f"Ошибка при удалении записи: {e}", exc_info=True)
 
     def save_data(self):
-        """Сохраняет данные в текущий файл (если он известен), иначе вызывает 'Сохранить как'."""
         try:
             if not self.data_loaded:
                 QMessageBox.warning(self, "Предупреждение", "Нет данных для сохранения")
@@ -574,7 +586,6 @@ class STSAnnotator(QMainWindow):
             return False
 
     def save_data_as(self):
-        """Сохраняет данные в новый файл, выбранный пользователем."""
         try:
             if not self.data_loaded:
                 QMessageBox.warning(self, "Предупреждение", "Нет данных для сохранения")
