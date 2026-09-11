@@ -183,8 +183,9 @@ class STSAnnotator(QMainWindow):
 
         annotation_layout = QHBoxLayout()
 
-        self.btn_similar = QPushButton("Похожи")
         self.btn_not_similar = QPushButton("Не похожи")
+        self.btn_partial = QPushButton("Похожи частично")
+        self.btn_similar = QPushButton("Похожи")
         self.btn_skip = QPushButton("⏭ Пропустить")
         self.delete_btn = QPushButton("🗑 Удалить строку")
 
@@ -193,11 +194,14 @@ class STSAnnotator(QMainWindow):
             "min-height: 30px;"
             "font-weight: bold;"
         )
-        self.btn_similar.setStyleSheet(
-            "background-color: #2ecc71; color: white; " + common_btn_style
-        )
         self.btn_not_similar.setStyleSheet(
             "background-color: #e74c3c; color: white; " + common_btn_style
+        )
+        self.btn_partial.setStyleSheet(
+            "background-color: #f39c12; color: white; " + common_btn_style
+        )
+        self.btn_similar.setStyleSheet(
+            "background-color: #2ecc71; color: white; " + common_btn_style
         )
         self.btn_skip.setStyleSheet(
             "background-color: #95a5a6; color: white; " + common_btn_style
@@ -205,13 +209,19 @@ class STSAnnotator(QMainWindow):
         self.delete_btn.setStyleSheet(common_btn_style)
 
         btn_font = QFont("Arial", 14, QFont.Bold)
-        self.btn_similar.setFont(btn_font)
         self.btn_not_similar.setFont(btn_font)
+        self.btn_partial.setFont(btn_font)
+        self.btn_similar.setFont(btn_font)
         self.btn_skip.setFont(btn_font)
         self.delete_btn.setFont(btn_font)
 
-        annotation_layout.addWidget(self.btn_similar)
+        self.btn_not_similar.setToolTip("Не похожи (клавиша 1)")
+        self.btn_partial.setToolTip("Похожи частично (клавиша 2)")
+        self.btn_similar.setToolTip("Похожи (клавиша 3)")
+
         annotation_layout.addWidget(self.btn_not_similar)
+        annotation_layout.addWidget(self.btn_partial)
+        annotation_layout.addWidget(self.btn_similar)
         annotation_layout.addWidget(self.btn_skip)
         annotation_layout.addWidget(self.delete_btn)
 
@@ -226,8 +236,9 @@ class STSAnnotator(QMainWindow):
             self.save_as_btn.clicked.connect(self.save_data_as)
             self.delete_btn.clicked.connect(self.delete_current_record)
 
-            self.btn_similar.clicked.connect(lambda: self.annotate_current(1))
-            self.btn_not_similar.clicked.connect(lambda: self.annotate_current(0))
+            self.btn_not_similar.clicked.connect(lambda: self.annotate_current(1))
+            self.btn_partial.clicked.connect(lambda: self.annotate_current(2))
+            self.btn_similar.clicked.connect(lambda: self.annotate_current(3))
             self.btn_skip.clicked.connect(self.skip_current)
 
             self.btn_prev.clicked.connect(self.previous_record)
@@ -252,7 +263,10 @@ class STSAnnotator(QMainWindow):
                 lambda: self.annotate_current(1)
             )
             QShortcut(QKeySequence("2"), self).activated.connect(
-                lambda: self.annotate_current(0)
+                lambda: self.annotate_current(2)
+            )
+            QShortcut(QKeySequence("3"), self).activated.connect(
+                lambda: self.annotate_current(3)
             )
             QShortcut(QKeySequence("S"), self).activated.connect(self.skip_current)
             QShortcut(QKeySequence("Delete"), self).activated.connect(
@@ -397,18 +411,21 @@ class STSAnnotator(QMainWindow):
                 self.current_label.setStyleSheet(
                     "font-family: 'Segoe UI', Arial; font-size: 26px; font-weight: bold; color: gray;"
                 )
+            elif similar == 1:
+                self.current_label.setText("Не похожи")
+                self.current_label.setStyleSheet(
+                    "font-family: 'Segoe UI', Arial; font-size: 26px; font-weight: bold; color: red;"
+                )
+            elif similar == 2:
+                self.current_label.setText("Похожи частично")
+                self.current_label.setStyleSheet(
+                    "font-family: 'Segoe UI', Arial; font-size: 26px; font-weight: bold; color: #f39c12;"
+                )
             else:
-                similar_text = "Похожи" if similar == 1 else "Не похожи"
-                self.current_label.setText(similar_text)
-
-                if similar == 1:
-                    self.current_label.setStyleSheet(
-                        "font-family: 'Segoe UI', Arial; font-size: 26px; font-weight: bold; color: green;"
-                    )
-                else:
-                    self.current_label.setStyleSheet(
-                        "font-family: 'Segoe UI', Arial; font-size: 26px; font-weight: bold; color: red;"
-                    )
+                self.current_label.setText("Похожи")
+                self.current_label.setStyleSheet(
+                    "font-family: 'Segoe UI', Arial; font-size: 26px; font-weight: bold; color: green;"
+                )
         except Exception as e:
             logging.error(f"Ошибка при отображении текущей записи: {e}", exc_info=True)
 
@@ -420,8 +437,9 @@ class STSAnnotator(QMainWindow):
             self.delete_btn.setEnabled(has_data)
             self.btn_prev.setEnabled(has_data and self.current_index > 0)
             self.btn_next.setEnabled(has_data and self.current_index < len(self.df) - 1)
-            self.btn_similar.setEnabled(has_data)
             self.btn_not_similar.setEnabled(has_data)
+            self.btn_partial.setEnabled(has_data)
+            self.btn_similar.setEnabled(has_data)
             self.btn_skip.setEnabled(has_data)
             self.btn_next_unlabeled.setEnabled(has_data)
         except Exception as e:
@@ -436,7 +454,7 @@ class STSAnnotator(QMainWindow):
             self.df.at[current_idx, "is_similar"] = is_similar
             self.unsaved_changes = True
 
-            logging.debug(f"Запись {current_idx} размечена: similar={is_similar}")
+            logging.debug(f"Запись {current_idx} размечена: is_similar={is_similar}")
 
             self.update_buttons_state()
             self.display_current_record()
