@@ -40,7 +40,7 @@ class DataLoaderThread(QThread):
     def run(self):
         try:
             logging.debug(f"Начало загрузки файла: {self.file_path}")
-            df = pd.read_csv(self.file_path)
+            df = pd.read_csv(self.file_path, skipinitialspace=True)
 
             if "query" not in df.columns or "text" not in df.columns:
                 error_msg = "csv должен содержать колонки query и text"
