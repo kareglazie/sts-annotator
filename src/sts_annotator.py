@@ -37,13 +37,34 @@ class DataLoaderThread(QThread):
         super().__init__()
         self.file_path = file_path
 
+    def _read_csv_robust(self, path: str) -> pd.DataFrame:
+        last_err = None
+        attempts = [
+            dict(encoding="utf-8", skipinitialspace=True, engine="python"),
+            dict(encoding="utf-8-sig", skipinitialspace=True, engine="python"),
+            dict(encoding="utf-8", skipinitialspace=True, engine="python", sep=None),
+            dict(encoding="cp1251", skipinitialspace=True, engine="python"),
+        ]
+        for kwargs in attempts:
+            try:
+                df = pd.read_csv(path, **kwargs)
+                logging.info(f"CSV прочитан с параметрами: {kwargs}")
+                return df
+            except Exception as e:
+                last_err = e
+                logging.warning(f"read_csv не удался с {kwargs}: {e}")
+        raise last_err if last_err else RuntimeError("Не удалось прочитать CSV")
+
     def run(self):
         try:
             logging.debug(f"Начало загрузки файла: {self.file_path}")
-            df = pd.read_csv(self.file_path, skipinitialspace=True)
+            df = self._read_csv_robust(self.file_path)
 
             if "query" not in df.columns or "text" not in df.columns:
-                error_msg = "csv должен содержать колонки query и text"
+                error_msg = (
+                    f"csv должен содержать колонки query и text. "
+                    f"Найдены: {list(df.columns)}"
+                )
                 logging.error(error_msg)
                 self.error.emit(error_msg)
                 return
@@ -190,9 +211,7 @@ class STSAnnotator(QMainWindow):
         self.delete_btn = QPushButton("🗑 Удалить строку")
 
         common_btn_style = (
-            "padding: 10px 16px;"
-            "min-height: 30px;"
-            "font-weight: bold;"
+            "padding: 10px 16px;" "min-height: 30px;" "font-weight: bold;"
         )
         self.btn_not_similar.setStyleSheet(
             "background-color: #e74c3c; color: white; " + common_btn_style
@@ -610,7 +629,9 @@ class STSAnnotator(QMainWindow):
                 return False
 
             default_name = (
-                self.current_file_path if self.current_file_path else "labelled_sts_data.csv"
+                self.current_file_path
+                if self.current_file_path
+                else "labelled_sts_data.csv"
             )
 
             file_path, _ = QFileDialog.getSaveFileName(
